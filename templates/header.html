@@ -1,0 +1,110 @@
+<!--标签内的 class 属性是 bootstrap 样式定义方法-->
+<!-- 定义导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <!-- 导航栏商标 -->
+        <a class="navbar-brand" href="#">cat的博客</a>
+        <!-- 导航入口 -->
+        <div>
+            <ul class="navbar-nav">
+                <!-- 条目 -->
+                <li class="nav-item">
+                    <!-- 改写了这里的 href -->
+                    <!-- href定义了链接跳转的地址。-->
+                    <!-- \{\% url '...' \%\}是Django规定的模板解耦语法，-->
+                    <!--用它可以根据我们在urls.py中设置的名字，反向解析到对应的url中去。-->
+                    <!-- article:article_list 的解释-->
+                    <!-- article 是在项目根目录的 urls.py 中定义的app的名称-->
+                    <!-- article_list 是在 app 中的 urls.py 中定义的具体路由地址-->
+                    <!--只要对应 url 名称不变， url 本身无论怎么变化， Django 都可以解析正确地址-->
+                    <!--当然也可以直接在 href 中写入 url 的地址，-->
+                    <!--但 url 变化，所有的相关链接都会失效-->
+                    <a class="nav-link" href="{% url 'article:article_list' %}">文章</a>
+                </li>
+                <!-- Django的 if 模板语句 -->
+                <!-- is_authenticated是models.User类的属性，用于判断用户是否已通过身份验证。-->
+                {% if user.is_authenticated %}
+                <!-- 如果用户已经登录，则显示用户名下拉框 -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle"
+                       href="#"
+                       id="navbarDropdown"
+                       role="button"
+                       data-toggle="dropdown"
+                       aria-haspopup="true"
+                       aria-expanded="false">
+
+                        {% if unread_count %}
+                        <svg viewBox="0 0 8 8"
+                             width="8px"
+                             height="8px">
+                            <circle cx="4"
+                                    cy="4"
+                                    r="4"
+                                    fill="#ff6b6b"
+                            ></circle>
+                        </svg>
+                        {% endif %}
+                        {{ user.username }}
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="{% url 'notice:list' %}">通知
+                        {% if unread_count %}
+                        <span class="badge badge-danger">{{ unread_count }}</span>
+                        {% endif %}
+                        </a>
+                        <a class="dropdown-item" href="#" onclick="user_delete()">删除用户</a>
+                        <a class="dropdown-item" href='{% url "userprofile:edit" user.id %}'>个人信息</a>
+                        <a class="dropdown-item" href="{% url 'article:article_create' %}">写文章</a>
+                        <a class="dropdown-item" href='{% url "userprofile:logout" %}'>退出登录</a>
+                    </div>
+                </li>
+                <!-- 如果用户未登录，则显示 “登录” -->
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'userprofile:login' %}">登录</a>
+                </li>
+                <!-- if 语句在这里结束 -->
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!--因为删除用户要求用户必须登录，因此就把它的入口放在登陆后才显示的下拉框中，这样页面可以更加简洁。-->
+<!--当然这种方式并不是最佳的选择，通常的做法是把删除功能放在独立的用户资料页面中。-->
+<!--与删除文章类似，-->
+<!--点击删除用户链接后调用了user_delete()函数，-->
+<!--函数包含了弹窗组件确认用户没有误操作；-->
+<!--点击弹窗中的确认按钮后，提交删除的隐藏表单，执行视图。-->
+<!--注意到user_delete()函数和表单是用if模板语句包裹起来的。-->
+<!--因为用户未登录时页面对象中是没有user.id属性的，-->
+<!--但是函数中却又包含了user.id，Django在解析模板时就会报错。-->
+<!--if语句确保了只有在用户登录时才对这段JavaScript代码进行解析，-->
+<!--回避了这个问题。-->
+
+<!--删除用户的函数-->
+{% if user.is_authenticated %}
+<form
+        style="display:none;"
+        id="user_delete"
+        action="{% url 'userprofile:delete' user.id %}"
+        method="POST"
+>
+    {% csrf_token %}
+    <button type="submit">发送</button>
+</form>
+<script>
+    function user_delete() {
+        // 调用layer弹窗组件
+        layer.open({
+            title: "确认删除",
+            content: "确认删除用户资料吗？",
+            yes: function (index, layero) {
+                $('form#user_delete button').click();
+                layer.close(index);
+            },
+        })
+    }
+</script>
+{% endif %}
